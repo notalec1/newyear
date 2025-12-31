@@ -19,15 +19,17 @@
             scrollbar-width: none;  /* Firefox */
         }
 
-        body {
-            margin: 0;
-            padding: 0;
-            background: radial-gradient(circle at center, #1e3c72 0%, #000000 100%);
-            color: #ffffff;
-            font-family: 'Poppins', sans-serif;
-            overflow-x: hidden; /* Prevent horizontal scroll */
-            overflow-y: scroll; /* Allow vertical scrolling */
-        }
+body {
+    margin: 0;
+    padding: 0;
+    /* This "fixed" property locks the blue center to the middle of your monitor */
+    background: radial-gradient(circle at center, #1e3c72 0%, #000000 100%);
+    background-attachment: fixed; 
+    color: #ffffff;
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
 
         /* Background Canvas */
         canvas {
