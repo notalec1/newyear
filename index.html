@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Global Tracker</title>
+    <style>
+        /* --- 1. CORE STYLES & NO SCROLLBARS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;700;900&display=swap');
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Hide scrollbar for IE, Edge and Firefox */
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #1e3c72 0%, #000000 100%);
+            color: #ffffff;
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-y: scroll; /* Allow vertical scrolling */
+        }
+
+        /* Background Canvas */
+        canvas {
+            position: fixed; /* Fixed so it stays while scrolling */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* --- 2. HERO SECTION (100vh) --- */
+        #hero {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* UI Controls */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        select, button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: 0.3s;
+            outline: none;
+            font-size: 0.9rem;
+        }
+        select option { background: #1e3c72; }
+        select:hover, button:hover { background: rgba(255, 255, 255, 0.3); }
+
+        #test-btn { background: rgba(255, 71, 87, 0.2); border-color: rgba(255, 71, 87, 0.5); }
+        #test-btn:hover { background: rgba(255, 71, 87, 0.4); }
+
+        /* Countdown */
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        #countdown-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .time-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            min-width: 100px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .number { font-size: 4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+        .label { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+
+        /* Scroll Hint */
+        .scroll-hint {
+            position: absolute;
+            bottom: 20px;
+            opacity: 0.5;
+            animation: bounce 2s infinite;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* --- 3. LEADERBOARD SECTION --- */
+        #leaderboard {
+            min-height: 100vh;
+            width: 100%;
+            padding: 50px 20px;
+            box-sizing: border-box;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-container {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 50px;
+        }
+
+        .board-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .zone-item {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s;
+        }
+        
+        .zone-item:hover { transform: scale(1.02); background: rgba(255, 255, 255, 0.1); }
+        .zone-name { font-weight: bold; }
+        .zone-status { font-family: monospace; color: #aaa; }
+        .celebrated .zone-status { color: #00ff80; font-weight: bold; }
+
+        /* --- 4. NOTIFICATIONS & EFFECTS --- */
+        #milestone-alert {
+            position: fixed;
+            top: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 159, 67, 0.95);
+            color: #222;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            z-index: 200;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: top 0.6s ease;
+            text-align: center;
+            min-width: 300px;
+            border: 2px solid #fff;
+        }
+        #milestone-alert.show { top: 50px; }
+
+        #celebration-message {
+            display: none;
+            font-size: 5vw;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            text-align: center;
+            z-index: 20;
+            line-height: 1.2;
+            animation: textFadeIn 1s ease forwards;
+        }
+        @keyframes textFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Heartbeat Mode */
+        body.heartbeat-mode #hero {
+            background: radial-gradient(circle at center, #500000 0%, #000000 100%);
+            animation: bgPulse 1s infinite;
+        }
+        body.heartbeat-mode .time-box {
+            border-color: #ff4d4d; box-shadow: 0 0 30px rgba(255, 0, 0, 0.4); animation: boxPulse 1s infinite;
+        }
+        @keyframes bgPulse { 50% { background-size: 110%; } } /* Subtle pulse */
+        @keyframes boxPulse { 50% { transform: scale(1.05); } }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5rem; }
+            .number { font-size: 2.5rem; }
+            .time-box { min-width: 60px; padding: 10px; }
+            #controls { flex-direction: column; top: 10px; right: 10px; align-items: flex-end; }
+            #celebration-message { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div id="milestone-alert"></div>
+
+    <!-- Hero Section -->
+    <div id="hero">
+        <div id="controls">
+            <select id="timezone-select" title="Change Time Zone">
+                <option value="local">📍 Local Time</option>
+                <option value="14">🇰🇮 Kiritimati (UTC+14)</option>
+                <option value="13">🇳🇿 New Zealand (UTC+13)</option>
+                <option value="11">🇦🇺 Sydney (UTC+11)</option>
+                <option value="9">🇯🇵 Tokyo (UTC+9)</option>
+                <option value="8">🇨🇳 Beijing / 🇸🇬 Singapore (UTC+8)</option>
+                <option value="7">🇹🇭 Bangkok / 🇻🇳 Hanoi (UTC+7)</option>
+                <option value="5.5">🇮🇳 India (UTC+5:30)</option>
+                <option value="4">🇦🇪 Dubai (UTC+4)</option>
+                <option value="3">🇸🇦 Riyadh / 🇷🇺 Moscow (UTC+3)</option>
+                <option value="2">🇱🇧 Beirut / 🇬🇷 Athens (UTC+2)</option>
+                <option value="1">🇫🇷 Paris / 🇩🇪 Berlin (UTC+1)</option>
+                <option value="0">🇬🇧 London (UTC)</option>
+                <option value="-3">🇧🇷 Rio / 🇦🇷 Buenos Aires (UTC-3)</option>
+                <option value="-5">🇺🇸 New York (EST)</option>
+                <option value="-6">🇺🇸 Chicago (CST)</option>
+                <option value="-7">🇺🇸 Denver (MST)</option>
+                <option value="-8">🇺🇸 Los Angeles (PST)</option>
+                <option value="-10">🇺🇸 Hawaii (UTC-10)</option>
+            </select>
+            
+            <button id="test-btn" onclick="testFinalCountdown()">⏱ Test Final 20s</button>
+            <button onclick="toggleFullscreen()">⛶ Full</button>
+        </div>
+
+        <h1 id="headline">Countdown to 2026</h1>
+
+        <div id="countdown-container">
+            <div class="time-box">
+                <span class="number" id="days">00</span>
+                <span class="label">Days</span>
+            </div>
+            <div class="time-box">
+                <span class="number" id="hours">00</span>
+                <span class="label">Hours</span>
+            </div>
+            <div class="time-box">
+                <span class="number" id="minutes">00</span>
+                <span class="label">Minutes</span>
+            </div>
+            <div class="time-box">
+                <span class="number" id="seconds">00</span>
+                <span class="label">Seconds</span>
+            </div>
+        </div>
+
+        <div id="celebration-message">HAPPY NEW YEAR!</div>
+
+        <div class="scroll-hint">Scroll for Global Leaderboard ▼</div>
+    </div>
+
+    <!-- Leaderboard Section -->
+    <div id="leaderboard">
+        <div class="board-container">
+            <div class="board-title">🎉 Already Celebrated 2026</div>
+            <div id="celebrated-list"></div>
+        </div>
+
+        <div class="board-container">
+            <div class="board-title">⏳ Coming Up Next</div>
+            <div id="upcoming-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // === CONFIGURATION ===
+        const TARGET_YEAR = 2026;
+        
+        // Expanded Time Zone Data for Leaderboard
+        const timeZoneData = [
+            { offset: 14, name: "Kiritimati, Kiribati" },
+            { offset: 13, name: "Samoa & New Zealand" },
+            { offset: 11, name: "Sydney, Australia" },
+            { offset: 10, name: "Brisbane, Australia" },
+            { offset: 9, name: "Tokyo, Japan & Seoul, Korea" },
+            { offset: 8, name: "Beijing, China & Singapore" },
+            { offset: 7, name: "Bangkok, Thailand & Vietnam" },
+            { offset: 6, name: "Dhaka, Bangladesh" },
+            { offset: 5.5, name: "New Delhi, India" },
+            { offset: 5, name: "Karachi, Pakistan" },
+            { offset: 4, name: "Dubai, UAE" },
+            { offset: 3, name: "Riyadh, Saudi Arabia & Moscow" },
+            { offset: 2, name: "Beirut, Cairo, Athens, Helsinki" },
+            { offset: 1, name: "Paris, Berlin, Rome, Madrid" },
+            { offset: 0, name: "London, UK & Lisbon, Portugal" },
+            { offset: -1, name: "Azores, Cape Verde" },
+            { offset: -2, name: "South Georgia Islands" },
+            { offset: -3, name: "Rio de Janeiro, Brazil & Argentina" },
+            { offset: -4, name: "Halifax, Canada" },
+            { offset: -5, name: "New York, USA & Toronto" },
+            { offset: -6, name: "Chicago, USA & Mexico City" },
+            { offset: -7, name: "Denver, USA" },
+            { offset: -8, name: "Los Angeles, USA & Vancouver" },
+            { offset: -9, name: "Anchorage, Alaska" },
+            { offset: -10, name: "Honolulu, Hawaii" },
+            { offset: -11, name: "American Samoa" }
+        ];
+
+        // Expanded Greetings
+        const greetings = [
+            "HAPPY NEW YEAR! 🇺🇸", "BONNE ANNÉE! 🇫🇷", "FELIZ AÑO NUEVO! 🇪🇸", 
+            "FROHES NEUES JAHR! 🇩🇪", "FELICE ANNO NUOVO! 🇮🇹", "明けましておめでとう! 🇯🇵", 
+            "새해 복 많이 받으세요! 🇰🇷", "新年快乐! 🇨🇳", "SANA SAIDAH! 🇸🇦", 
+            "FELIZ ANO NOVO! 🇧🇷", "S NOVYM GODOM! 🇷🇺", "GOTT NYTT ÅR! 🇸🇪",
+            "GELUKKIG NIEUWJAAR! 🇳🇱", "BOLDOG ÚJ ÉVET! 🇭🇺", "MUTLU YILLAR! 🇹🇷",
+            "CHÚC MỪNG NĂM MỚI! 🇻🇳", "SAWATDEE PI MAI! 🇹🇭", "SELAMAT TAHUN BARU! 🇮🇩",
+            "MANIGONG BAGONG TAON! 🇵🇭", "SZCZĘŚLIWEGO NOWEGO ROKU! 🇵🇱", "LA MULȚI ANI! 🇷🇴",
+            "NAV VARSH KI SHUBHKAMNAYE! 🇮🇳", "SHANA TOVA! 🇮🇱", "HERI ZA MWAKA MPYA! 🇰🇪"
+        ];
+
+        const els = {
+            days: document.getElementById('days'),
+            hours: document.getElementById('hours'),
+            minutes: document.getElementById('minutes'),
+            seconds: document.getElementById('seconds'),
+            container: document.getElementById('countdown-container'),
+            headline: document.getElementById('headline'),
+            message: document.getElementById('celebration-message'),
+            select: document.getElementById('timezone-select'),
+            alert: document.getElementById('milestone-alert'),
+            celebratedList: document.getElementById('celebrated-list'),
+            upcomingList: document.getElementById('upcoming-list'),
+            body: document.body
+        };
+
+        // State
+        let interval;
+        let leaderboardInterval;
+        let autoFireworksTimer = null;
+        let greetingTimer = null;
+        let isCelebrated = false;
+        let testTargetTime = null;
+        let lastAlertMinute = -1;
+
+        // === 1. NOTIFICATIONS ===
+        function showNotification(text) {
+            els.alert.innerText = text;
+            els.alert.classList.add('show');
+            setTimeout(() => els.alert.classList.remove('show'), 8000);
+        }
+
+        // === 2. RESET STATE ===
+        function resetState() {
+            if (autoFireworksTimer) clearInterval(autoFireworksTimer);
+            if (greetingTimer) clearInterval(greetingTimer);
+            autoFireworksTimer = null;
+            greetingTimer = null;
+            isCelebrated = false;
+            particles = []; 
+            els.body.classList.remove('heartbeat-mode');
+            els.headline.style.display = 'block';
+            els.headline.innerText = "Countdown to 2026";
+            els.container.style.display = 'flex';
+            els.message.style.display = 'none';
+            els.alert.classList.remove('show');
+            lastAlertMinute = -1;
+        }
+
+        // === 3. TIME LOGIC ===
+        function getTargetTime(offset = null) {
+            if (testTargetTime && offset === null) return testTargetTime;
+
+            const selection = offset !== null ? offset : els.select.value;
+            
+            if (selection === 'local' && offset === null) {
+                return new Date(`Jan 1, ${TARGET_YEAR} 00:00:00`).getTime();
+            } else {
+                // If local selected but we need leaderboard data, we need offset
+                // For simplified leaderboard, we assume fixed offsets in array
+                const val = offset !== null ? offset : parseFloat(selection);
+                const utcTarget = Date.UTC(TARGET_YEAR, 0, 1, 0, 0, 0);
+                return utcTarget - (val * 3600000);
+            }
+        }
+
+        // === 4. COUNTDOWN LOOP ===
+        function updateTimer() {
+            const target = getTargetTime();
+            const now = new Date().getTime();
+            const distance = target - now;
+
+            // Notifications & Heartbeat
+            const totalMinutesLeft = Math.floor(distance / 60000);
+            if (distance > 0 && totalMinutesLeft <= 60 && totalMinutesLeft !== lastAlertMinute) {
+                if (totalMinutesLeft === 60) { showNotification("Final Hour: 60 Minutes! ⏳"); lastAlertMinute = totalMinutesLeft; }
+                else if (totalMinutesLeft % 10 === 0 && totalMinutesLeft !== 0) { showNotification(`${totalMinutesLeft} Minutes Remaining!`); lastAlertMinute = totalMinutesLeft; }
+                else if (totalMinutesLeft === 15) { showNotification("15 Minute Warning: Prep Champagne! 🍾"); lastAlertMinute = totalMinutesLeft; }
+                else if (totalMinutesLeft === 5) { showNotification("5 Minutes Left! Turn it up! 🔊"); lastAlertMinute = totalMinutesLeft; }
+            }
+
+            if (distance < 11000 && distance > 0) {
+                if (!els.body.classList.contains('heartbeat-mode')) {
+                    els.body.classList.add('heartbeat-mode');
+                    els.headline.innerText = "GET READY!";
+                    els.alert.classList.remove('show');
+                }
+            } else if (distance >= 11000) {
+                els.body.classList.remove('heartbeat-mode');
+                if(!isCelebrated) els.headline.innerText = `Countdown to ${TARGET_YEAR}`;
+            }
+
+            if (distance < 0) {
+                if (!isCelebrated) startCelebration();
+                els.days.innerText = "00"; els.hours.innerText = "00";
+                els.minutes.innerText = "00"; els.seconds.innerText = "00";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            els.days.innerText = formatTime(days);
+            els.hours.innerText = formatTime(hours);
+            els.minutes.innerText = formatTime(minutes);
+            els.seconds.innerText = formatTime(seconds);
+        }
+
+        function formatTime(t) { return t < 10 ? `0${t}` : t; }
+
+        // === 5. LEADERBOARD LOGIC ===
+        function updateLeaderboard() {
+            const now = new Date().getTime();
+            let celebratedHTML = '';
+            let upcomingHTML = '';
+
+            // Filter and Sort
+            // Sort data by offset desc (so earliest timezones come first)
+            const sortedZones = [...timeZoneData].sort((a, b) => b.offset - a.offset);
+
+            sortedZones.forEach(zone => {
+                const target = getTargetTime(zone.offset);
+                const diff = target - now;
+
+                if (diff <= 0) {
+                    // Already celebrated
+                    const ago = Math.abs(diff);
+                    const hoursAgo = Math.floor(ago / (1000 * 60 * 60));
+                    const minsAgo = Math.floor((ago % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    celebratedHTML += `
+                        <div class="zone-item celebrated">
+                            <span class="zone-name">✅ ${zone.name}</span>
+                            <span class="zone-status">Reached ${hoursAgo}h ${minsAgo}m ago</span>
+                        </div>
+                    `;
+                } else {
+                    // Coming up
+                    const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
+                    const minsLeft = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const secsLeft = Math.floor((diff % (1000 * 60)) / 1000);
+                    
+                    upcomingHTML += `
+                        <div class="zone-item">
+                            <span class="zone-name">${zone.name}</span>
+                            <span class="zone-status">in ${hoursLeft}h ${minsLeft}m ${secsLeft}s</span>
+                        </div>
+                    `;
+                }
+            });
+
+            els.celebratedList.innerHTML = celebratedHTML || '<div style="text-align:center; opacity:0.5">No one yet!</div>';
+            els.upcomingList.innerHTML = upcomingHTML;
+        }
+
+        interval = setInterval(updateTimer, 1000);
+        leaderboardInterval = setInterval(updateLeaderboard, 1000);
+        updateTimer();
+        updateLeaderboard();
+
+
+        // === 6. CONTROLS ===
+        els.select.addEventListener('change', () => {
+            testTargetTime = null; resetState(); updateTimer();
+        });
+        window.testFinalCountdown = () => {
+            resetState(); testTargetTime = new Date().getTime() + 20000; updateTimer();
+        }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => console.log(e));
+            else if (document.exitFullscreen) document.exitFullscreen();
+        }
+
+
+        // === 7. CELEBRATION ===
+        function startCelebration() {
+            isCelebrated = true;
+            els.body.classList.remove('heartbeat-mode');
+            els.headline.style.display = 'none';
+            els.container.style.display = 'none';
+            els.message.style.display = 'block';
+            if (!autoFireworksTimer) startAutoFireworks();
+            
+            let langIndex = 0;
+            els.message.innerText = greetings[0];
+            greetingTimer = setInterval(() => {
+                langIndex = (langIndex + 1) % greetings.length;
+                els.message.innerText = greetings[langIndex];
+                els.message.style.animation = 'none';
+                els.message.offsetHeight; 
+                els.message.style.animation = 'textFadeIn 1s ease forwards';
+            }, 2500); // Faster cycle
+        }
+
+
+        // === 8. FIREWORKS ENGINE ===
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 100; this.alpha = 1; this.gravity = 0.05;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy; this.vy += this.gravity;
+                this.alpha -= 0.01; this.life--;
+            }
+            draw(ctx) {
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+            }
+        }
+
+        function createExplosion(x, y) {
+            const colors = ['#ff0040', '#00ff80', '#ffeb3b', '#00e5ff', '#aa00ff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 50; i++) particles.push(new Particle(x, y, color));
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => { p.update(); p.draw(ctx); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+        document.addEventListener('mousedown', (e) => {
+            if(e.target.closest('#controls') || e.target.closest('#leaderboard')) return;
+            createExplosion(e.clientX, e.clientY);
+        });
+        function startAutoFireworks() {
+            autoFireworksTimer = setInterval(() => {
+                createExplosion(Math.random() * canvas.width, Math.random() * (canvas.height / 2));
+            }, 500);
+        }
+    </script>
+</body>
+</html>
